@@ -37,6 +37,7 @@ const LIFT_CONSTANTS_FOR_NODE_TYPES: [NodeType; 30] = [
     NodeType::OneHot,
     NodeType::PRelu,
     NodeType::Pad,
+    NodeType::QuantizeLinear,
     NodeType::Range,
     NodeType::ReduceMax,
     NodeType::ReduceMean,

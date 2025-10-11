@@ -54,6 +54,7 @@ pub mod nonzero;
 pub mod one_hot;
 pub mod pad;
 pub mod padding;
+pub mod quantize_linear;
 pub mod random;
 pub mod random_like;
 pub mod range;

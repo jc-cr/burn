@@ -7,7 +7,56 @@ import numpy as np
 import onnx
 from onnx import helper, TensorProto, numpy_helper
 
-def create_model():
+
+def create_model_without_zero_point():
+    # Simple per-tensor quantization test
+    # Input: float32 tensor
+    input_tensor = helper.make_tensor_value_info(
+        "input", TensorProto.FLOAT, [2, 3, 4]
+    )
+    
+    # Output: quantized int8 tensor
+    output_tensor = helper.make_tensor_value_info(
+        "output", TensorProto.INT8, [2, 3, 4]
+    )
+    
+    # Scale: scalar for per-tensor quantization
+    scale_tensor = numpy_helper.from_array(
+        np.array(0.1, dtype=np.float32), name="y_scale"
+    )
+    
+    # Create QuantizeLinear node
+    quantize_node = helper.make_node(
+        "QuantizeLinear",
+        inputs=["input", "y_scale"],
+        outputs=["output"],
+        name="quantize_linear"
+    )
+    
+    # Create the graph
+    graph_def = helper.make_graph(
+        [quantize_node],
+        "quantize_linear_test",
+        [input_tensor],
+        [output_tensor],
+        [scale_tensor]
+    )
+    
+    # Create the model with opset 16
+    model_def = helper.make_model(
+        graph_def,
+        producer_name="quantize_linear_test",
+        opset_imports=[helper.make_opsetid("", 16)]
+    )
+    
+    # Save the model
+    onnx.save(model_def, "quantize_linear.onnx")
+    print("Model saved as quantize_linear.onnx")
+
+    return model_def
+
+
+def create_model_with_zero_point():
     # Simple per-tensor quantization test
     # Input: float32 tensor
     input_tensor = helper.make_tensor_value_info(
@@ -62,7 +111,7 @@ def create_model():
 def main():
     # Test with sample data
     try:
-        model_def = create_model()
+        model_def = create_model_without_zero_point()
 
     except Exception as e:
         print(f"Error: {e}")
