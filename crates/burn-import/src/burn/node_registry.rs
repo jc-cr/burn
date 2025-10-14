@@ -122,6 +122,9 @@ node_registry! {
     GroupNormalization => group_norm as GroupNormNode,
     InstanceNormalization => instance_norm as InstanceNormNode,
 
+    // Quantization ops
+    QuantizeLinear => quantize_linear as QuantizeLinearNode,
+
     // Other ops
     Cast => cast as CastNode,
     Clip => clip as ClipNode,

@@ -2,7 +2,7 @@ use crate::ir::*;
 
 pub fn quantize_linear_config(node: &Node) -> (Option<i64>, Option<i64>) {
     // Extract axis attribute if present (ONNX opset 13+)
-    let axis = node.attrs.get("axis").and_then(|v| v.clone().into_i64());
+    let axis = node.attrs.get("axis").map(|v| v.clone().into_i64());
     
     // Check if zero_point is provided (3rd input)
     let has_zero_point = node.inputs.len() > 2;

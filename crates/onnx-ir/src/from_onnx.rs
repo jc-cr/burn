@@ -19,7 +19,7 @@ use super::rank_inference::rank_inference;
 
 use protobuf::Message;
 
-const LIFT_CONSTANTS_FOR_NODE_TYPES: [NodeType; 30] = [
+const LIFT_CONSTANTS_FOR_NODE_TYPES: [NodeType; 31] = [
     NodeType::BatchNormalization,
     NodeType::Clip,
     NodeType::Conv1d,
