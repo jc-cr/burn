@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 # file: quantize_linear.py
-# desc: Generate a FP32 torch model, 
-#       export to ONNX, quantize with ONNX, validate
 
 import numpy as np
 import onnx
