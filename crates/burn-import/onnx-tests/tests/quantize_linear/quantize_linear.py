@@ -4,7 +4,7 @@
 import numpy as np
 import onnx
 from onnx import helper, TensorProto, numpy_helper
-
+from onnx.reference import ReferenceEvaluator
 
 def create_model_without_zero_point():
     # Simple per-tensor quantization test
@@ -108,12 +108,8 @@ def create_model_with_zero_point():
 def main():
     # Test with sample data
     try:
+        run_without_zero_point
         model_def = create_model_without_zero_point()
-
-    except Exception as e:
-        print(f"Error: {e}")
-    try:
-        from onnx.reference import ReferenceEvaluator
         
         test_input = np.random.randn(2, 3, 4).astype(np.float32)
         print(f"\nTest input shape: {test_input.shape}")
