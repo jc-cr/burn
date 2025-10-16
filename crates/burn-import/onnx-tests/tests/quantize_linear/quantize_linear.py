@@ -40,11 +40,10 @@ def create_model_without_zero_point():
         [scale_tensor]
     )
     
-    # Create the model with opset 16
     model_def = helper.make_model(
         graph_def,
         producer_name="quantize_linear_test",
-        opset_imports=[helper.make_opsetid("", 16)]
+        opset_imports=[helper.make_opsetid("", 19)]
     )
     
     # Save the model
