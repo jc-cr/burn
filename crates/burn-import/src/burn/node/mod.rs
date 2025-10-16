@@ -31,6 +31,7 @@ pub(crate) mod conv_transpose_2d;
 pub(crate) mod conv_transpose_3d;
 pub(crate) mod cos;
 pub(crate) mod cosh;
+pub(crate) mod dequantize_linear;
 pub(crate) mod depth_to_space;
 pub(crate) mod div;
 pub(crate) mod dropout;

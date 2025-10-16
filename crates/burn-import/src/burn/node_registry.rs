@@ -124,6 +124,7 @@ node_registry! {
 
     // Quantization ops
     QuantizeLinear => quantize_linear as QuantizeLinearNode,
+    DequantizeLinear => dequantize_linear as DequantizeLinearNode, 
 
     // Other ops
     Cast => cast as CastNode,

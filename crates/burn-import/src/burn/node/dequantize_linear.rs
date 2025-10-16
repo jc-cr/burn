@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 #[derive(Debug, Clone)]
-pub struct QuantizeLinearNode {
+pub struct DequantizeLinearNode {
     pub input: Type,
     pub scale: Type,
     pub zero_point: Option<Type>,
@@ -13,7 +13,7 @@ pub struct QuantizeLinearNode {
     pub axis: Option<i64>,
 }
 
-impl QuantizeLinearNode {
+impl DequantizeLinearNode {
     pub fn new(
         input: Type,
         scale: Type,
@@ -31,20 +31,20 @@ impl QuantizeLinearNode {
     }
 }
 
-impl OnnxIntoNode for QuantizeLinearNode {
+impl OnnxIntoNode for DequantizeLinearNode {
     fn from_onnx(node: onnx_ir::Node) -> Self {
         let input = Type::from(node.inputs.first().unwrap());
         let scale = Type::from(node.inputs.get(1).unwrap());
         let zero_point = node.inputs.get(2).map(Type::from);
         let output = Type::from(node.outputs.first().unwrap());
         
-        let (axis, _) = onnx_ir::node::quantize_linear::quantize_linear_config(&node);
+        let (axis, _) = onnx_ir::node::dequantize_linear::dequantize_linear_config(&node);
 
         Self::new(input, scale, zero_point, output, axis)
     }
 }
 
-impl<PS: PrecisionSettings> NodeCodegen<PS> for QuantizeLinearNode {
+impl<PS: PrecisionSettings> NodeCodegen<PS> for DequantizeLinearNode {
     fn input_types(&self) -> Vec<Type> {
         let mut types = vec![self.input.clone(), self.scale.clone()];
         if let Some(ref zp) = self.zero_point {
@@ -62,33 +62,30 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for QuantizeLinearNode {
         let scale_name = self.scale.name();
         let output = self.output.name();
 
-        // ONNX QuantizeLinear formula: y = saturate(round(x / y_scale) + y_zero_point)
-        // Without zero_point: y = saturate(round(x / y_scale))
-        // saturate for int8: clamp to [-128, 127]
+        // ONNX DequantizeLinear formula: y = (x - x_zero_point) * x_scale
+        // Without zero_point: y = x * x_scale
         
         if self.zero_point.is_some() {
             // TODO: Implement with zero_point
             quote! {
-                compile_error!("QuantizeLinear with zero_point is not yet implemented");
+                compile_error!("DequantizeLinear with zero_point is not yet implemented");
             }
         } else {
-            // Formula: y = clamp(round(x / scale), -128, 127)
+            // Formula: y = x.float() * scale
             match self.axis {
                 None => {
-                    // Per-tensor quantization (scale is scalar constant)
+                    // Per-tensor dequantization (scale is scalar constant)
                     quote! {
-                        // Quantize: divide by scale, round, and clamp to int8 range
+                        // Dequantize: convert to float and multiply by scale
                         let #output = #input
-                            .div_scalar(#scale_name)
-                            .round()
-                            .clamp(-128.0, 127.0)
-                            .int();
+                            .float()
+                            .mul_scalar(#scale_name);
                     }
                 }
                 Some(_axis) => {
-                    // Per-channel quantization
+                    // Per-channel dequantization
                     quote! {
-                        compile_error!("QuantizeLinear with axis (per-channel) is not yet implemented");
+                        compile_error!("DequantizeLinear with axis (per-channel) is not yet implemented");
                     }
                 }
             }
@@ -96,7 +93,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for QuantizeLinearNode {
     }
 
     fn into_node(self) -> Node<PS> {
-        Node::QuantizeLinear(self)
+        Node::DequantizeLinear(self)
     }
 }
 
@@ -107,14 +104,14 @@ mod tests {
     use burn::record::FullPrecisionSettings;
 
     #[test]
-    fn test_codegen_quantize_linear_without_zero_point() {
+    fn test_codegen_dequantize_linear_without_zero_point() {
         let mut graph = BurnGraph::<FullPrecisionSettings>::default();
 
-        graph.register(QuantizeLinearNode::new(
-            Type::Tensor(TensorType::new_float("input", 4)),
+        graph.register(DequantizeLinearNode::new(
+            Type::Tensor(TensorType::new_int("input", 4)),
             Type::Scalar(ScalarType::new("scale", ScalarKind::Float32)),
             None, // No zero point
-            Type::Tensor(TensorType::new_int("output", 4)),
+            Type::Tensor(TensorType::new_float("output", 4)),
             None, // Per-tensor (no axis)
         ));
 
@@ -143,14 +140,12 @@ mod tests {
                 }
 
                 #[allow(clippy::let_and_return, clippy::approx_constant)]
-                pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4, Int> {
+                pub fn forward(&self, input: Tensor<B, 4, Int>) -> Tensor<B, 4> {
                     let scale = 0.1f32;
 
                     let output = input
-                        .div_scalar(scale)
-                        .round()
-                        .clamp(-128.0, 127.0)
-                        .int();
+                        .float()
+                        .mul_scalar(scale);
 
                     output
                 }
