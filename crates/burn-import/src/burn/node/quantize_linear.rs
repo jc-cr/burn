@@ -66,10 +66,26 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for QuantizeLinearNode {
         // Without zero_point: y = saturate(round(x / y_scale))
         // saturate for int8: clamp to [-128, 127]
         
-        if self.zero_point.is_some() {
-            // TODO: Implement with zero_point
-            quote! {
-                compile_error!("QuantizeLinear with zero_point is not yet implemented");
+        if let Some(ref zero_point) = self.zero_point {
+            let zero_point_name = zero_point.name();
+            match self.axis {
+                None => {
+                    // Per-tensor with zero_point
+                    // y = clamp(round(x / scale) + zero_point, -128, 127)
+                    quote! {
+                        let #output = #input
+                            .div_scalar(#scale_name)
+                            .round()
+                            .add_scalar(#zero_point_name as f32)
+                            .clamp(-128.0, 127.0)
+                            .int();
+                    }
+                }
+                Some(_axis) => {
+                    quote! {
+                        compile_error!("QuantizeLinear with axis and zero_point not yet implemented");
+                    }
+                }
             }
         } else {
             // Formula: y = clamp(round(x / scale), -128, 127)
@@ -144,6 +160,55 @@ mod tests {
                     let output = input
                         .div_scalar(scale)
                         .round()
+                        .clamp(-128.0, 127.0)
+                        .int();
+
+                    output
+                }
+            }
+        };
+
+        assert_tokens(graph.codegen(), expected);
+    }
+
+    #[test]
+    fn test_codegen_quantize_linear_with_zero_point() {
+        let mut graph = BurnGraph::<FullPrecisionSettings>::default();
+
+        graph.register(QuantizeLinearNode::new(
+            Type::Tensor(TensorType::new_float("input", 4)),
+            Type::Scalar(ScalarType::new("scale", ScalarKind::Float32)),
+            Some(Type::Scalar(ScalarType::new("zero_point", ScalarKind::Int32))), // With zero point
+            Type::Tensor(TensorType::new_int("output", 4)),
+            None, // Per-tensor (no axis)
+        ));
+
+        graph.register_input_output(vec!["input".to_string()], vec!["output".to_string()]);
+
+        let expected = quote! {
+            use burn::prelude::*;
+
+            #[derive(Module, Debug)]
+            pub struct Model<B: Backend> {
+                phantom: core::marker::PhantomData<B>,
+                device: burn::module::Ignored<B::Device>,
+            }
+
+            impl<B: Backend> Model<B> {
+                #[allow(unused_variables)]
+                pub fn new(device: &B::Device) -> Self {
+                    Self {
+                        phantom: core::marker::PhantomData,
+                        device: burn::module::Ignored(device.clone()),
+                    }
+                }
+
+                #[allow(clippy::let_and_return, clippy::approx_constant)]
+                pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4, Int> {
+                    let output = input
+                        .div_scalar(scale)
+                        .round()
+                        .add_scalar(zero_point as f32)
                         .clamp(-128.0, 127.0)
                         .int();
 
