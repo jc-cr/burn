@@ -59,24 +59,30 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for QuantizeLinearNode {
 
     fn forward(&self, scope: &mut Scope, node_position: usize) -> TokenStream {
         let input = scope.tensor_use_owned(self.input.as_tensor(), node_position);
-        let scale_name = self.scale.name();
         let output = self.output.name();
 
-        // ONNX QuantizeLinear formula: y = saturate(round(x / y_scale) + y_zero_point)
-        // Without zero_point: y = saturate(round(x / y_scale))
-        // saturate for int8: clamp to [-128, 127]
-        
+        let scale = if let Type::Scalar(scalar) = &self.scale {
+            let name = scalar.name();
+            quote! { #name }
+        } else {
+            panic!("Scale must be a scalar");
+        };
+
         if let Some(ref zero_point) = self.zero_point {
-            let zero_point_name = zero_point.name();
+            let zp = if let Type::Scalar(scalar) = zero_point {
+                let name = scalar.name();
+                quote! { #name }
+            } else {
+                panic!("Zero point must be a scalar");
+            };
+            
             match self.axis {
                 None => {
-                    // Per-tensor with zero_point
-                    // y = clamp(round(x / scale) + zero_point, -128, 127)
                     quote! {
                         let #output = #input
-                            .div_scalar(#scale_name)
+                            .div_scalar(#scale)
                             .round()
-                            .add_scalar(#zero_point_name as f32)
+                            .add_scalar(#zp as f32)
                             .clamp(-128.0, 127.0)
                             .int();
                     }
@@ -88,21 +94,17 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for QuantizeLinearNode {
                 }
             }
         } else {
-            // Formula: y = clamp(round(x / scale), -128, 127)
             match self.axis {
                 None => {
-                    // Per-tensor quantization (scale is scalar constant)
                     quote! {
-                        // Quantize: divide by scale, round, and clamp to int8 range
                         let #output = #input
-                            .div_scalar(#scale_name)
+                            .div_scalar(#scale)
                             .round()
                             .clamp(-128.0, 127.0)
                             .int();
                     }
                 }
                 Some(_axis) => {
-                    // Per-channel quantization
                     quote! {
                         compile_error!("QuantizeLinear with axis (per-channel) is not yet implemented");
                     }

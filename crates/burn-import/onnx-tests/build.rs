@@ -320,6 +320,10 @@ fn main() {
         .input("tests/xor/xor.onnx")
         .input("tests/xor/xor_scalar.onnx")
         .input("tests/xor/xor_broadcast.onnx")
+        .input("tests/quantize_linear/quantize_linear.onnx")
+        .input("tests/quantize_linear/quantize_linear_with_zero_point.onnx")
+        .input("tests/dequantize_linear/dequantize_linear.onnx")
+        .input("tests/dequantize_linear/dequantize_linear_with_zero_point.onnx")
         .out_dir("model/")
         .run_from_script();
 

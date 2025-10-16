@@ -59,43 +59,48 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for DequantizeLinearNode {
 
     fn forward(&self, scope: &mut Scope, node_position: usize) -> TokenStream {
         let input = scope.tensor_use_owned(self.input.as_tensor(), node_position);
-        let scale_name = self.scale.name();
         let output = self.output.name();
 
-        // Check for zero point arg
-        if let Some(ref zero_point) = self.zero_point {
-                let zero_point_name = zero_point.name();
-                match self.axis {
-                    None => {
-                        // Per-tensor with zero_point
-                        // y = (x - zero_point) * scale
-                        quote! {
-                            let #output = #input
-                                .float()
-                                .sub_scalar(#zero_point_name as f32)
-                                .mul_scalar(#scale_name);
-                        }
-                    }
-                    Some(_axis) => {
-                        quote! {
-                            compile_error!("DequantizeLinear with axis and zero_point not yet implemented");
-                        }
-                    }
-                }
+        let scale = if let Type::Scalar(scalar) = &self.scale {
+            let name = scalar.name();
+            quote! { #name }
         } else {
-            // Formula: y = x.float() * scale
+            panic!("Scale must be a scalar");
+        };
+
+        if let Some(ref zero_point) = self.zero_point {
+            let zp = if let Type::Scalar(scalar) = zero_point {
+                let name = scalar.name();
+                quote! { #name }
+            } else {
+                panic!("Zero point must be a scalar");
+            };
+            
             match self.axis {
                 None => {
-                    // Per-tensor dequantization (scale is scalar constant)
                     quote! {
-                        // Dequantize: convert to float and multiply by scale
                         let #output = #input
                             .float()
-                            .mul_scalar(#scale_name);
+                            .sub_scalar(#zp as f32)
+                            .mul_scalar(#scale);
                     }
                 }
                 Some(_axis) => {
-                    // Per-channel dequantization
+                    quote! {
+                        compile_error!("DequantizeLinear with axis and zero_point not yet implemented");
+                    }
+                }
+            }
+        } else {
+            match self.axis {
+                None => {
+                    quote! {
+                        let #output = #input
+                            .float()
+                            .mul_scalar(#scale);
+                    }
+                }
+                Some(_axis) => {
                     quote! {
                         compile_error!("DequantizeLinear with axis (per-channel) is not yet implemented");
                     }

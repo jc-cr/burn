@@ -117,6 +117,8 @@ pub mod trilu;
 pub mod unsqueeze;
 pub mod where_op;
 pub mod xor;
+pub mod quantize_linear;
+pub mod dequantize_linear;
 /// Include specified models in the `model` directory in the target directory.
 #[macro_export]
 macro_rules! include_models {

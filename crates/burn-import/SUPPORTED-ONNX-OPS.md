@@ -55,7 +55,7 @@ functionality.
 | [CumSum][41]                     | ❌             | ✅          |
 | [DeformConv][196]                | ❌             | ❌           |
 | [DepthToSpace][42]               | ✅             | ✅           |
-| [DequantizeLinear][43]           | ❌             | ❌           |
+| [DequantizeLinear][43]           | ✅             | ❌           |
 | [Det][44]                        | ❌             | ❌           |
 | [DFT][45]                        | ❌             | ❌           |
 | [Div][46]                        | ✅             | ✅           |
@@ -136,7 +136,7 @@ functionality.
 | [PRelu][122]                     | ✅             | ✅           |
 | [QLinearConv][123]               | ❌             | ❌           |
 | [QLinearMatMul][124]             | ❌             | ❌           |
-| [QuantizeLinear][125]            | ❌             | ❌           |
+| [QuantizeLinear][125]            | ✅             | ❌           |
 | [RandomNormal][126]              | ✅             | ✅           |
 | [RandomNormalLike][127]          | ✅             | ✅           |
 | [RandomUniform][128]             | ✅             | ✅           |
