@@ -121,11 +121,7 @@ mod tests {
         graph.register_input_output(vec!["input".to_string()], vec!["output".to_string()]);
 
         let expected = quote! {
-            use burn::tensor::Int;
-            use burn::{
-                module::Module,
-                tensor::{backend::Backend, Tensor},
-            };
+            use burn::prelude::*;
 
             #[derive(Module, Debug)]
             pub struct Model<B: Backend> {
@@ -144,7 +140,6 @@ mod tests {
 
                 #[allow(clippy::let_and_return, clippy::approx_constant)]
                 pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4, Int> {
-                    let scale = 0.1f32;
 
                     let output = input
                         .div_scalar(scale)
