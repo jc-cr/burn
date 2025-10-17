@@ -34,13 +34,12 @@ impl QuantizeLinearNode {
 impl OnnxIntoNode for QuantizeLinearNode {
     fn from_onnx(node: onnx_ir::Node) -> Self {
         let input = Type::from(node.inputs.first().unwrap());
-        let scale = Type::from(node.inputs.get(1).unwrap());
-        let zero_point = node.inputs.get(2).map(Type::from);
         let output = Type::from(node.outputs.first().unwrap());
         
-        let (axis, _) = onnx_ir::node::quantize_linear::quantize_linear_config(&node);
+        let (axis, scale, zero_point) = onnx_ir::node::quantize_linear::quantize_linear_config(&node);
+        let scale = scale.expect("Scale is required");
 
-        Self::new(input, scale, zero_point, output, axis)
+        Self::new(input, output, scale, zero_point, axis)
     }
 }
 
@@ -62,7 +61,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for QuantizeLinearNode {
         let output = self.output.name();
 
         let scale = if let Type::Scalar(scalar) = &self.scale {
-            let name = scalar.name();
+            let name = &scalar.name;
             quote! { #name }
         } else {
             panic!("Scale must be a scalar");
@@ -70,7 +69,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for QuantizeLinearNode {
 
         if let Some(ref zero_point) = self.zero_point {
             let zp = if let Type::Scalar(scalar) = zero_point {
-                let name = scalar.name();
+                let name = &scalar.name;
                 quote! { #name }
             } else {
                 panic!("Zero point must be a scalar");

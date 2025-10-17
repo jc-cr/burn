@@ -1,4 +1,5 @@
 use crate::include_models;
+use burn::tensor::Tolerance;
 
 include_models!(
     dequantize_linear,
@@ -80,7 +81,7 @@ mod tests {
             &device,
         );
 
-        output.to_data().assert_approx_eq(&expected.to_data(), 3);
+        output.to_data().assert_approx_eq(&expected.to_data(), Tolerance::default());
     }
 
     #[test]
@@ -153,6 +154,6 @@ mod tests {
             &device,
         );
 
-        output.to_data().assert_approx_eq(&expected.to_data(), 3);
+        output.to_data().assert_approx_eq(&expected.to_data(), Tolerance::default());
     }
 }

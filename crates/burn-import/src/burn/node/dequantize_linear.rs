@@ -62,7 +62,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for DequantizeLinearNode {
         let output = self.output.name();
 
         let scale = if let Type::Scalar(scalar) = &self.scale {
-            let name = scalar.name();
+            let name = &scalar.name;
             quote! { #name }
         } else {
             panic!("Scale must be a scalar");
@@ -70,7 +70,7 @@ impl<PS: PrecisionSettings> NodeCodegen<PS> for DequantizeLinearNode {
 
         if let Some(ref zero_point) = self.zero_point {
             let zp = if let Type::Scalar(scalar) = zero_point {
-                let name = scalar.name();
+                let name = &scalar.name;
                 quote! { #name }
             } else {
                 panic!("Zero point must be a scalar");
